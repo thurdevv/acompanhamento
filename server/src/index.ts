@@ -10,7 +10,17 @@ import { projectsRouter } from './routes/projects';
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+// O frontend roda em outra origem (Static Site do Render), entao o CORS precisa
+// liberar essa URL. Sem CORS_ORIGIN definido, libera geral (util no dev local).
+// Aceita "site.onrender.com" ou "https://site.onrender.com", separados por virgula.
+const allowedOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((o) => o.trim().replace(/\/+$/, ''))
+  .filter(Boolean)
+  .map((o) => (/^https?:\/\//.test(o) ? o : `https://${o}`));
+
+app.use(cors(allowedOrigins.length ? { origin: allowedOrigins } : {}));
 app.use(express.json());
 
 app.get('/api/status', (_req, res) => res.json({ ok: true }));
@@ -33,6 +43,10 @@ ensureSchema()
   })
   .catch((err) => {
     console.error('Falha ao conectar no PostgreSQL:', err.message);
-    console.error('Verifique a senha em server/.env e rode "npm run setup" primeiro.');
+    console.error(
+      process.env.DATABASE_URL
+        ? 'Verifique a variavel DATABASE_URL do servico.'
+        : 'Verifique a senha em server/.env e rode "npm run setup" primeiro.'
+    );
     process.exit(1);
   });

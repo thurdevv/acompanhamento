@@ -1,4 +1,11 @@
-const BASE = '/api';
+// Em producao o backend fica em outro dominio (Web Service do Render), definido
+// em VITE_API_URL no momento do build. Vazio = mesma origem, usando o proxy do dev.
+// O Render injeta so o hostname, entao completamos o protocolo quando faltar.
+const RAW_API_URL = (import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
+const API_ORIGIN = RAW_API_URL && !/^https?:\/\//.test(RAW_API_URL)
+  ? `https://${RAW_API_URL}`
+  : RAW_API_URL;
+const BASE = `${API_ORIGIN}/api`;
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {

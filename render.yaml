@@ -1,0 +1,55 @@
+# Blueprint do Render: banco + API + frontend em um deploy so.
+# Render Dashboard > New > Blueprint > aponta para este repositorio.
+
+databases:
+  - name: acompanhamento-db
+    databaseName: acompanhamento
+    user: acompanhamento
+    plan: free
+
+services:
+  # API Express (server/) — processo persistente, roda igual ao local.
+  - type: web
+    name: acompanhamento-api
+    runtime: node
+    plan: free
+    rootDir: server
+    # --include=dev porque o Render define NODE_ENV=production e o build
+    # precisa do typescript, que esta em devDependencies.
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/status
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: acompanhamento-db
+          property: connectionString
+      # Preencha depois do primeiro deploy com a URL do acompanhamento-web
+      # (nao da para referenciar via fromService: criaria um ciclo entre os
+      # dois servicos). Em branco, a API aceita qualquer origem.
+      - key: CORS_ORIGIN
+        sync: false
+      - key: NODE_VERSION
+        value: "22"
+
+  # Frontend Vite (client/) — arquivos estaticos gerados no build.
+  - type: web
+    name: acompanhamento-web
+    runtime: static
+    rootDir: client
+    buildCommand: npm ci --include=dev && npm run build
+    staticPublishPath: dist
+    envVars:
+      # URL da API, injetada no bundle durante o build do Vite.
+      - key: VITE_API_URL
+        fromService:
+          name: acompanhamento-api
+          type: web
+          property: host
+      - key: NODE_VERSION
+        value: "22"
+    routes:
+      # SPA: qualquer rota desconhecida cai no index.html.
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -3,13 +3,20 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-export const pool = new Pool({
-  host: process.env.PGHOST || 'localhost',
-  port: Number(process.env.PGPORT || 5432),
-  user: process.env.PGUSER || 'postgres',
-  password: process.env.PGPASSWORD,
-  database: process.env.PGDATABASE || 'acompanhamento',
-});
+// Em producao (Render) o banco vem como uma unica URL de conexao.
+// Em desenvolvimento continua usando as variaveis PG* do server/.env.
+export const pool = process.env.DATABASE_URL
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+    })
+  : new Pool({
+      host: process.env.PGHOST || 'localhost',
+      port: Number(process.env.PGPORT || 5432),
+      user: process.env.PGUSER || 'postgres',
+      password: process.env.PGPASSWORD,
+      database: process.env.PGDATABASE || 'acompanhamento',
+    });
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS settings (

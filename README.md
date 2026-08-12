@@ -57,9 +57,48 @@ npm run dev
 Acesse `http://localhost:5173`. A interface é responsiva — funciona no celular
 (basta acessar pelo IP da máquina na mesma rede, ex: `http://192.168.x.x:5173`).
 
+## Deploy no Render
+
+O repositório é um monorepo e **não tem `package.json` na raiz** — por isso um
+serviço apontado para a raiz falha com `ENOENT: package.json`. O
+[`render.yaml`](render.yaml) resolve isso definindo o `rootDir` de cada serviço.
+
+### Passo a passo
+
+1. No Render: **New → Blueprint** e selecione este repositório. Ele lê o
+   `render.yaml` e cria três recursos de uma vez:
+   - `acompanhamento-db` — PostgreSQL gerenciado
+   - `acompanhamento-api` — Web Service com o Express de `server/`
+   - `acompanhamento-web` — Static Site com o build do `client/`
+2. Quando pedir o valor de `CORS_ORIGIN`, **deixe em branco** (a URL do frontend
+   ainda não existe).
+3. Terminado o primeiro deploy, copie a URL do `acompanhamento-web`
+   (ex: `https://acompanhamento-web.onrender.com`), cole em `CORS_ORIGIN` nas
+   variáveis de ambiente do `acompanhamento-api` e salve. Isso restringe a API a
+   aceitar chamadas só do seu frontend.
+
+As tabelas são criadas sozinhas: o `ensureSchema()` roda no boot da API.
+
+### Variáveis de ambiente
+
+| Serviço | Variável | Origem |
+| --- | --- | --- |
+| API | `DATABASE_URL` | preenchida pelo Render a partir do banco |
+| API | `CORS_ORIGIN` | manual, após o 1º deploy (aceita lista separada por vírgula) |
+| Frontend | `VITE_API_URL` | preenchida pelo Render com o host da API |
+
+Localmente nada disso é necessário: sem `DATABASE_URL` o backend continua usando
+as variáveis `PG*` do `server/.env`, e sem `VITE_API_URL` o frontend usa o proxy
+`/api` do Vite.
+
+> O plano free do PostgreSQL no Render expira em 30 dias e os serviços free
+> hibernam depois de 15 minutos sem tráfego (a primeira chamada depois disso
+> demora alguns segundos).
+
 ## Estrutura
 
 ```
+render.yaml           # blueprint do Render (banco + API + frontend)
 server/
   src/
     index.ts          # servidor Express

@@ -6,6 +6,14 @@ dotenv.config();
 
 // Cria o banco de dados (se nao existir) e todas as tabelas.
 async function main() {
+  // Em servico gerenciado (Render) o banco ja existe: so criamos as tabelas.
+  if (process.env.DATABASE_URL) {
+    await ensureSchema();
+    console.log('Tabelas criadas/verificadas com sucesso.');
+    await pool.end();
+    return;
+  }
+
   const dbName = process.env.PGDATABASE || 'acompanhamento';
   const admin = new Client({
     host: process.env.PGHOST || 'localhost',

@@ -1,0 +1,18 @@
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+build/
+
+# Ambiente (contem senha do banco — nunca commitar)
+.env
+.env.local
+
+# Ferramentas locais
+.claude/
+
+# Logs e temporarios
+*.log
+.DS_Store
+Thumbs.db
